@@ -46,18 +46,15 @@ module Narra
         !!(url =~ /^(?:http:\/\/|https:\/\/)?(www\.)?(youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){6,11})(\S*)?$/)
       end
 
-      def self.resolve(url)
-        final_url = self.class.fetch(url)
-
+      def self.resolve(url, key = '')
+        final_url = Connector.fetch(url)
         key = "AIzaSyBVYtP85g7VCilGKbzkQqPCf8CxokAfvhU" if key == ''
         
-        # all description from YouTube API
+        videoid = final_url.split('v=')[1].split('&')[0]
+        uri = URI("https://www.googleapis.com/youtube/v3/videos?id=#{videoid}&key=#{key}&part=snippet,statistics,contentDetails,status")
         
-        videoid = self.class.getId(final_url)
-        uri = URI("https://www.googleapis.com/youtube/v3/videos?id=#{@videoid}&key=#{key}&part=snippet,statistics,contentDetails,status")
+        metadata = JSON.parse(Net::HTTP.get(uri))["items"][0]
         
-        metadata = JSON.parse(Net::HTTP.get(uri))["items"][0]        
-
         # return proxies
         [{
              url: final_url,
@@ -65,6 +62,7 @@ module Narra
              thumbnail: "http://img.youtube.com/vi/#{videoid}/0.jpg",
              type: :video,
              connector: @identifier,
+             author: true,
              @identifier => {
                  final_url: final_url,
                  metadata: metadata
@@ -100,13 +98,6 @@ module Narra
           redirect_history << uri_str
           uri_str = response['location']
         end
-      end
-
-      # getId
-      # params: url (string)
-      # returns @videoid (string)
-      def self.getId(url)
-        url.split('v=')[1].split('&')[0]
       end
 
       # initialize
