@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Narra Core. If not, see <http://www.gnu.org/licenses/>.
 #
-# Authors:
+# Authors: Petr Kubín
 #
 
 lib = File.expand_path('../lib', __FILE__)
@@ -27,8 +27,8 @@ require 'narra/youtube/version'
 Gem::Specification.new do |spec|
   spec.name          = "narra-youtube"
   spec.version       = Narra::Youtube::VERSION
-  spec.authors       = [""]
-  spec.email         = [""]
+  spec.authors       = ["Petr Kubín"]
+  spec.email         = ["kubinpe5@fit.cvut.cz"]
   spec.summary       = %q{NARRA YouTube Connector}
   spec.description   = %q{Allows NARRA to connects to the YouTube sources}
   spec.homepage      = "http://www.narra.eu"

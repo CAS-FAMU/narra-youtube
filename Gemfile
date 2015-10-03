@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Narra Core. If not, see <http://www.gnu.org/licenses/>.
 #
-# Authors:
+# Authors: Petr Kubín
 #
 
 source 'https://rubygems.org'
@@ -24,4 +24,4 @@ source 'https://rubygems.org'
 # Specify your gem's dependencies in narra-youtube.gemspec
 gemspec
 
-gem 'narra-core', git: 'https://github.com/CAS-FAMU/narra-core.git'
+gem 'narra-core', git: 'https://github.com/petrpulc/narra-core.git'
