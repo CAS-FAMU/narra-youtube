@@ -24,4 +24,4 @@ source 'https://rubygems.org'
 # Specify your gem's dependencies in narra-youtube.gemspec
 gemspec
 
-gem 'narra-core', git: 'https://github.com/petrpulc/narra-core.git'
+gem 'narra-core', git: 'https://github.com/CAS-FAMU/narra-core.git'

@@ -14,10 +14,10 @@ module ViddlYt
 
     video = get_videos(url)
     
-    return {url: nil} if video == nil
+    return nil if video == nil
     
     format = @format_picker.pick_format(video)
-    make_url_filname_hash(video, format)
+    video.get_download_url(format.itag)
   end
   
   def self.get_videos(url)
@@ -30,10 +30,5 @@ module ViddlYt
       puts "Error getting the video: #{e.message}"
       nil
     end
-  end
-  
-  def self.make_url_filname_hash(video, format)
-    url = video.get_download_url(format.itag)
-    {url: url}
   end
 end

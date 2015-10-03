@@ -35,6 +35,44 @@ module Narra
       @title = 'NARRA YouTube Connector'
       @description = 'Allows NARRA to connects to the YouTube sources'
 
+
+      # validation
+      # params: url (string)
+      # returns bool value ( true / false )
+      def self.valid?(url)
+        url = fetch(url)
+      
+        # check if valid YouTube watch url (TODO playlists and users not yet supported)
+        !!(url =~ /^(?:http:\/\/|https:\/\/)?(www\.)?(youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){6,11})(\S*)?$/)
+      end
+
+      def self.resolve(url)
+        final_url = self.class.fetch(url)
+
+        key = "AIzaSyBVYtP85g7VCilGKbzkQqPCf8CxokAfvhU" if key == ''
+        
+        # all description from YouTube API
+        
+        videoid = self.class.getId(final_url)
+        uri = URI("https://www.googleapis.com/youtube/v3/videos?id=#{@videoid}&key=#{key}&part=snippet,statistics,contentDetails,status")
+        
+        metadata = JSON.parse(Net::HTTP.get(uri))["items"][0]        
+
+        # return proxies
+        [{
+             url: final_url,
+             name: metadata["snippet"]["title"],
+             thumbnail: "http://img.youtube.com/vi/#{videoid}/0.jpg",
+             type: :video,
+             connector: @identifier,
+             @identifier => {
+                 final_url: final_url,
+                 metadata: metadata
+             }
+         }]
+      end
+
+
       # redirection test
       # params: uri_str (string), limit fixed to 20
       # returns new url with 200 status or ArgumentError
@@ -64,20 +102,10 @@ module Narra
         end
       end
 
-      # validation
-      # params: url (string)
-      # returns bool value ( true / false )
-      def self.valid?(url)
-        url = fetch(url)
-      
-        # check if valid YouTube watch url (TODO playlists and users not yet supported)
-        !!(url =~ /^(?:http:\/\/|https:\/\/)?(www\.)?(youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){6,11})(\S*)?$/)
-      end
-
       # getId
       # params: url (string)
       # returns @videoid (string)
-      def getId(url)
+      def self.getId(url)
         url.split('v=')[1].split('&')[0]
       end
 
@@ -88,11 +116,9 @@ module Narra
         key = "AIzaSyBVYtP85g7VCilGKbzkQqPCf8CxokAfvhU" if key == ''
         
         # all description from YouTube API
-        @url = self.class.fetch(url)
-        @videoid = getId(@url)
-        uri = URI("https://www.googleapis.com/youtube/v3/videos?id=#{@videoid}&key=#{key}&part=snippet,statistics,contentDetails,status")
-        @youtube = Net::HTTP.get(uri)
-        @my_hash = JSON.parse(@youtube)["items"][0]
+        
+        @final_url = @options[:final_url]
+        @meta = @options[:metadata]
       end
 
       # name
@@ -100,7 +126,7 @@ module Narra
       # returns name of video
       def name
         # jmeno video na youtube | title
-        @my_hash["snippet"]["title"]
+        @meta["snippet"]["title"]
       end
 
       # type
@@ -114,101 +140,41 @@ module Narra
       # params: none
       # returns Array
       def metadata
+        d = []
+        
+        d << {name:'channelId', value:"#{@meta["snippet"]["channelId"]}"}
+        d << {name:'channelTitle', value:"#{@meta["snippet"]["channelTitle"]}"}
+        d << {name:'author', value:"#{@meta["snippet"]["channelTitle"]}"}
+        d << {name:'publishedAt', value:"#{@meta["snippet"]["publishedAt"]}"}
+        d << {name:'description', value:"#{@meta["snippet"]["description"]}"} unless "#{@meta["snippet"]["description"]}".empty?
+        d << {name:'categoryId', value:"#{@meta["snippet"]["categoryId"]}"} unless "#{@meta["snippet"]["categoryId"]}".empty?
+        d << {name:'liveBroadcastContent', value:"#{@meta["snippet"]["liveBroadcastContent"]}"}
+        d << {name:'viewCount', value:"#{@meta["statistics"]["viewCount"]}"}
+        d << {name:'likeCount', value:"#{@meta["statistics"]["likeCount"]}"}
+        d << {name:'dislikeCount', value:"#{@meta["statistics"]["dislikeCount"]}"}
+        d << {name:'favouriteCount', value:"#{@meta["statistics"]["favouriteCount"]}"} unless "#{@meta["statistics"]["favouriteCount"]}".empty?
+        d << {name:'commentCount', value:"#{@meta["statistics"]["commentCount"]}"}
+        d << {name:'duration', value:"#{@meta["contentDetails"]["duration"]}"}
+        d << {name:'dimension', value:"#{@meta["contentDetails"]["dimension"]}"}
+        d << {name:'definition', value:"#{@meta["contentDetails"]["definition"]}"}
+        d << {name:'caption', value:"#{@meta["contentDetails"]["caption"]}"}
+        d << {name:'licensedContent', value:"#{@meta["contentDetails"]["licensedContent"]}"}
+        d << {name:'regionRestriction', value:"#{@meta["contentDetails"]["regionRestriction"]}"} unless "#{@meta["contentDetails"]["regionRestriction"]}".empty?
+        d << {name:'blockedIn', value:"#{@regionRestriction["blocked"]}"} unless @meta["contentDetails"]["regionRestriction"].nil?
+        d << {name:'uploadStatus', value:"#{@meta["status"]["processed"]}"} unless "#{@meta["status"]["processed"]}".empty?
+        d << {name:'privacyStatus', value:"#{@meta["status"]["privacyStatus"]}"}
+        d << {name:'license', value:"#{@meta["status"]["license"]}"}
+        d << {name:'embeddable', value:"#{@meta["status"]["embeddable"]}"}
+        d << {name:'publicStatsViewable', value:"#{@meta["status"]["publicStatsViewable"]}"}
+        d << {name:'timestamp', value:"#{Time.now.getutc}"}
 
-        # snippet part
-        #channelId
-        @channelId = @my_hash["snippet"]["channelId"]
-        #channelTitle
-        @channelTitle = @my_hash["snippet"]["channelTitle"]
-        #id
-        @id = @my_hash["snippet"]["id"]
-        #publishedAt
-        @publishedAt = @my_hash["snippet"]["publishedAt"]
-        #description
-        @my_description = @my_hash["snippet"]["description"]
-        #categoryId
-        @categoryId = @my_hash["snippet"]["categoryId"]
-        #liveBroadcastContent
-        @liveBroadcastContent = @my_hash["snippet"]["liveBroadcastContent"]
-
-        # statistics part
-        #viewCount
-        @viewCount = @my_hash["statistics"]["viewCount"]
-        #likeCount
-        @likeCount = @my_hash["statistics"]["likeCount"]
-        #dislikeCount
-        @dislikeCount = @my_hash["statistics"]["dislikeCount"]
-        #favouriteCount
-        @favoriteCount = @my_hash["statistics"]["favouriteCount"]
-        #commentCount
-        @commentCount = @my_hash["statistics"]["commentCount"]
-
-        # content details part
-        #duration
-        @duration = @my_hash["contentDetails"]["duration"]
-        #dimension
-        @dimension = @my_hash["contentDetails"]["dimension"]
-        #definition
-        @definition = @my_hash["contentDetails"]["definition"]
-        #caption
-        @caption = @my_hash["contentDetails"]["caption"]
-        #licensedContent
-        @licensedContent = @my_hash["contentDetails"]["licensedContent"]
-        #regionRestriction
-        @regionRestriction = @my_hash["contentDetails"]["regionRestriction"]
-        @blockedIn = @regionRestriction["blocked"] unless @regionRestriction.nil?
-
-        # status part
-        #uploadStatus
-        @uploadStatus = @my_hash["status"]["processed"]
-        #privacyStatus
-        @privacyStatus = @my_hash["status"]["privacyStatus"]
-        #licence
-        @license = @my_hash["status"]["license"]
-        #embeddable
-        @embeddable = @my_hash["status"]["embeddable"]
-        #publicStatsViewable
-        @publicStatsViewable = @my_hash["status"]["publicStatsViewable"]
-
-        #time when the metadata were added
-        @time = Time.now.getutc
-
-        data = []
-
-        data << {name:'videoId', value:"#{@videoid}"}
-        data << {name:'channelId', value:"#{@channelId}"}
-        data << {name:'channelTitle', value:"#{@channelTitle}"}
-        data << {name:'publishedAt', value:"#{@publishedAt}"}
-        data << {name:'description', value:"#{@my_description}"} unless "#{@my_description}".empty?
-        data << {name:'categoryId', value:"#{@categoryId}"} unless "#{@categoryId}".empty?
-        data << {name:'liveBroadcastContent', value:"#{@liveBroadcastContent}"}
-        data << {name:'viewCount', value:"#{@viewCount}"}
-        data << {name:'likeCount', value:"#{@likeCount}"}
-        data << {name:'dislikeCount', value:"#{@dislikeCount}"}
-        data << {name:'favouriteCount', value:"#{@favouriteCount}"} unless "#{@favouriteCount}".empty?
-        data << {name:'commentCount', value:"#{@commentCount}"}
-        data << {name:'duration', value:"#{@duration}"}
-        data << {name:'dimension', value:"#{@dimension}"}
-        data << {name:'definition', value:"#{@definition}"}
-        data << {name:'caption', value:"#{@caption}"}
-        data << {name:'licensedContent', value:"#{@licensedContent}"}
-        data << {name:'regionRestriction', value:"#{@regionRestriction}"} unless "#{@regionRestriction}".empty?
-        data << {name:'blockedIn', value:"#{@blockedIn}"} unless "#{@blockedIn}".empty?
-        data << {name:'uploadStatus', value:"#{@uploadStatus}"} unless "#{@uploadStatus}".empty?
-        data << {name:'privacyStatus', value:"#{@privacyStatus}"}
-        data << {name:'license', value:"#{@license}"}
-        data << {name:'embeddable', value:"#{@embeddable}"}
-        data << {name:'publicStatsViewable', value:"#{@publicStatsViewable}"}
-        data << {name:'timestamp', value:"#{@time}"}
+        #unused
+        #@meta["snippet"]["id"]
       end
-
-      # download_url
-      # params: none; must be called after valid? and initialize
-      # returns URL for video stream
+      
       def download_url
-        ViddlYt.get_video_url @url
+        ViddlYt.get_video_url @final_url
       end
-
     end
   end
 end
