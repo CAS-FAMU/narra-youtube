@@ -19,6 +19,7 @@
 # Authors: Michal Mocnak <michal@marigan.net>
 #
 
+*~
 *.rbc
 capybara-*.html
 .rspec

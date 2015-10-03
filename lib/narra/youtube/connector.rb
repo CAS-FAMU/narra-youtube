@@ -16,12 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with Narra Core. If not, see <http://www.gnu.org/licenses/>.
 #
-# Authors: Petr Kubin
+# Authors: Petr Pulc, Petr Kubin
 #
 
 require 'narra/core'
 require 'net/http'
 require 'json'
+require 'narra/youtube/helpers/viddlyt'
 
 module Narra
   module Youtube
@@ -39,19 +40,25 @@ module Narra
       # returns new url with 200 status or ArgumentError
       def self.fetch(uri_str, limit = 20)
         # You should choose a better exception.
-        raise ArgumentError, 'too many HTTP redirects' if limit == 0
+        raise ArgumentError, 'Too many HTTP redirects' if limit == 0
         raise ArgumentError, 'Invalid url passed' if uri_str.nil?
-        # vytvořit pole
+        
         redirect_history = []
-        # nekonečkou smyčku
+
         unless uri_str.start_with?('http://','https://')
           uri_str.prepend('http://')
         end
         for i in 0..limit
           return uri_str if redirect_history.include? uri_str
-          response = Net::HTTP.get_response(URI(uri_str))
+          uri = URI(uri_str)
+          response = nil
+          Net::HTTP.start(uri.host, uri.port,
+            :use_ssl => uri.scheme == 'https') {|http|
+            request = Net::HTTP::Head.new uri
+            response = http.request request
+          }
           return uri_str if response.is_a? Net::HTTPSuccess
-          raise StandardError, 'Error code between 4xx and 5xx' unless response.is_a? Net::HTTPRedirection
+          raise StandardError, 'HTTP code 4xx or 5xx' unless response.is_a? Net::HTTPRedirection
           redirect_history << uri_str
           uri_str = response['location']
         end
@@ -62,13 +69,8 @@ module Narra
       # returns bool value ( true / false )
       def self.valid?(url)
         url = fetch(url)
-      rescue ArgumentError => a
-        raise ArgumentError, 'Invalid url passed'
-      rescue StandardError => e
-        raise StandardError, 'Error code between 4xx and 5xx'
-      else
-        # this runs only when no exception was raised
-        # regular expression of youtube url - validation test
+      
+        # check if valid YouTube watch url (TODO playlists and users not yet supported)
         !!(url =~ /^(?:http:\/\/|https:\/\/)?(www\.)?(youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){6,11})(\S*)?$/)
       end
 
@@ -76,23 +78,19 @@ module Narra
       # params: url (string)
       # returns @videoid (string)
       def getId(url)
-        pom = url.split('v=')
-        pom[1].split('&')[0]
+        url.split('v=')[1].split('&')[0]
       end
 
       # initialize
       # params: url (string)
       # returns @youtube (json object)
       def initialize(url, key = '')
-        unless key != ''
-          @mykey = "AIzaSyBVYtP85g7VCilGKbzkQqPCf8CxokAfvhU"
-        else
-          @mykey = key
-        end
+        key = "AIzaSyBVYtP85g7VCilGKbzkQqPCf8CxokAfvhU" if key == ''
+        
         # all description from YouTube API
-        url = self.class.fetch(url)
-        @videoid = getId(url)
-        uri = URI("https://www.googleapis.com/youtube/v3/videos?id=#{@videoid}&key=#{@mykey}&part=snippet,statistics,contentDetails,status")
+        @url = self.class.fetch(url)
+        @videoid = getId(@url)
+        uri = URI("https://www.googleapis.com/youtube/v3/videos?id=#{@videoid}&key=#{key}&part=snippet,statistics,contentDetails,status")
         @youtube = Net::HTTP.get(uri)
         @my_hash = JSON.parse(@youtube)["items"][0]
       end
@@ -208,23 +206,7 @@ module Narra
       # params: none; must be called after valid? and initialize
       # returns URL for video stream
       def download_url
-        env = ENV["NARRA_YOUTUBE_SERVER"]
-        raise StandardError, 'Non existing video passed' if ( @videoid.nil? || env.nil? )
-      rescue StandardError => e
-        raise StandardError, 'Non existing video passed'
-      else
-        "#{env}/youtube_dl?id=#{@videoid}"
-      end
-
-      # download_url
-      # params: none; must be called after valid? and initialize
-      # returns URL for downloading video; login required!!
-      def download_captions
-        raise StandardError, 'This video has no title' if @caption == "false"
-      rescue StandardError => e
-        raise StandardError, 'This video has no title'
-      else
-        "https://www.googleapis.com/youtube/v3/captions/#{@videoid}"
+        ViddlYt.get_video_url @url
       end
 
     end

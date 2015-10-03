@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Narra Core. If not, see <http://www.gnu.org/licenses/>.
 #
-# Authors: Petr Kubín
+# Authors: Petr Pulc, Petr Kubín
 #
 
 require 'spec_helper'
@@ -38,14 +38,13 @@ describe Narra::Youtube::Connector do
 
   it 'should validate url' do
     expect(Narra::Youtube::Connector.valid?('https://www.youtube.com/watch?v=qM9f01YYDJ4')).to match(true)
-    expect(Narra::Youtube::Connector.valid?('https://www.youtube.com/watch?f=qM9f01YYDJ4')).to match(false)
     expect(Narra::Youtube::Connector.valid?('www.youtube.com/watch?v=tDyeiePort0')).to match(true)
     expect(Narra::Youtube::Connector.valid?('https://www.youtube.com/watch?v=tDyeiePort0&spfreload=10')).to match(true)
     expect(Narra::Youtube::Connector.valid?('https://www.youtube.com/watch?v=qM9f01YYDJ4asdasdasdadasdasdasdasdaasdasdad')).to match(true) #redirect to good url
-    expect { Narra::Youtube::Connector.valid?('www.youtube.com/watchv=tDyeiePort0') }.to raise_error
+    expect { Narra::Youtube::Connector.valid?('www.youtube.com/watchv=tDyeiePort0') }.to raise_error StandardError
     expect(Narra::Youtube::Connector.valid?('https://www.youtube.com/watch?vtDyeiePort0')).to match(false)
     expect(Narra::Youtube::Connector.valid?('http://www.youtube.com/watch?v=tDyeiePort0')).to match(true)    #redirect to https://
-    expect {Narra::Youtube::Connector.valid?('https:www.youtube.youtu.be.com/watch?v=tDyeiePort0')}.to raise_error
+    expect {Narra::Youtube::Connector.valid?('https:www.youtube.youtu.be.com/watch?v=tDyeiePort0')}.to raise_error StandardError
     expect(Narra::Youtube::Connector.valid?('https://www.youtube.com/watch?v=2gz3DSiSymE&feature=iv&src_vid=VxlQ2gqiZ7k&annotation_id=annotation_620965849')).to match(true)
     expect(Narra::Youtube::Connector.valid?('https://www.youtube.com/watch?t=12&v=Hw6_jEmVnN8')).to match(true)
     expect(Narra::Youtube::Connector.valid?('https://youtu.be/gfM1H3qW9WE')).to match(true)
@@ -100,15 +99,15 @@ describe 'object_youtube_connector' do
     #test liveBroadcastContent
     expect(@data['liveBroadcastContent']).to match('none')
     #test viewCount
-    expect(@data['viewCount']).to be > "85577"
+    expect(@data['viewCount'].to_i).to be > 85577
     #test likeCount
-    expect(@data['likeCount']).to be > "100"
+    expect(@data['likeCount'].to_i).to be > 100
     #test dislikeCount
-    expect(@data['dislikeCount']).to be > "0"
+    expect(@data['dislikeCount'].to_i).to be > 0
     #test favouriteCount
     expect(@data['favouriteCount']).nil?
     #test commentCount
-    expect(@data['commentCount']).to be > "5"
+    expect(@data['commentCount'].to_i).to be > 5
     #test duration
     expect(@data['duration']).to match('PT24M41S')
     #test dimension
@@ -148,15 +147,15 @@ describe 'object_youtube_connector' do
     #test liveBroadcastContent
     expect(@data1['liveBroadcastContent']).to match('none')
     #test viewCount
-    expect(@data1['viewCount']).to be > "9622"
+    expect(@data1['viewCount'].to_i).to be > 9622
     #test likeCount
-    expect(@data1['likeCount']).to be > "70"
+    expect(@data1['likeCount'].to_i).to be > 70
     #test dislikeCount
-    expect(@data1['dislikeCount']).to be > "10"
+    expect(@data1['dislikeCount'].to_i).to be > 10
     #test favouriteCount
     expect(@data1['favouriteCount']).nil?
     #test commentCount
-    expect(@data1['commentCount']).to be > "900"
+    expect(@data1['commentCount'].to_i).to be > 900
     #test duration
     expect(@data1['duration']).to match('PT1H3M')
     #test dimension
@@ -181,10 +180,6 @@ describe 'object_youtube_connector' do
     expect(@test3.name).to match('2015 Transmoto 12-hour - KTM Australia.')
     expect(@test3.type).to match(:video)
     expect(@test3.metadata).to be_instance_of(Array)
-
-    #test caption
-    expect(@data2['caption']).to match('false')
-    expect {@test3.download_captions}.to raise_error
   end
 
   it 'test Meddesuncut video test4' do
@@ -205,15 +200,15 @@ describe 'object_youtube_connector' do
     #test liveBroadcastContent
     expect(@data3['liveBroadcastContent']).to match('none')
     #test viewCount
-    expect(@data3['viewCount']).to be > "13300"
+    expect(@data3['viewCount'].to_i).to be > 13300
     #test likeCount
-    expect(@data3['likeCount']).to be > "280"
+    expect(@data3['likeCount'].to_i).to be > 280
     #test dislikeCount
-    expect(@data3['dislikeCount']).to be > "0"
+    expect(@data3['dislikeCount'].to_i).to be > 0
     #test favouriteCount
     expect(@data3['favouriteCount']).nil?
     #test commentCount
-    expect(@data3['commentCount']).to be > "15"
+    expect(@data3['commentCount'].to_i).to be > 15
     #test duration
     expect(@data3['duration']).to match('PT1M33S')
     #test dimension
@@ -250,8 +245,6 @@ describe 'object_youtube_connector' do
     expect(@data4['publicStatsViewable']).to match('false')
     #test timestamp
     expect(@data4['timestamp']).to match("#{@time}")
-    #download subtitles
-    expect(@test5.download_captions).to match('https://www.googleapis.com/youtube/v3/captions/ZDeyFnVkThA')
   end
 
   it 'should check timestamp' do
@@ -265,14 +258,6 @@ describe 'object_youtube_connector' do
   #  expect(@test4.download_url).to match("https://www.youtube.com/v/2gz3DSiSymE")
   #  expect(@test5.download_url).to match("https://www.youtube.com/v/ZDeyFnVkThA")
   #end
-
-  it 'should validate download captions' do
-    expect { @test1.download_captions }.to raise_error
-    expect { @test2.download_captions }.to raise_error
-    expect { @test3.download_captions }.to raise_error
-    expect { @test4.download_captions }.to raise_error
-    expect(@test5.download_captions).to match("https://www.googleapis.com/youtube/v3/captions/ZDeyFnVkThA")
-  end
 
   it 'should validate licensedContent and region restriction' do
     expect(@data5['licensedContent']).to match('false')
