@@ -100,14 +100,10 @@ module Narra
         end
       end
 
-      # initialize
-      # params: url (string)
+      # initialization
+      # (@options passed from resolver)
       # returns @youtube (json object)
-      def initialize(url, key = '')
-        key = "AIzaSyBVYtP85g7VCilGKbzkQqPCf8CxokAfvhU" if key == ''
-        
-        # all description from YouTube API
-        
+      def initialization
         @final_url = @options[:final_url]
         @meta = @options[:metadata]
       end
