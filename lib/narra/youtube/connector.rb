@@ -54,17 +54,18 @@ module Narra
         uri = URI("https://www.googleapis.com/youtube/v3/videos?id=#{videoid}&key=#{key}&part=snippet,statistics,contentDetails,status")
         
         metadata = JSON.parse(Net::HTTP.get(uri))["items"][0]
+        video_url = ViddlYt.get_video_url final_url
         
         # return proxies
         [{
-             url: final_url,
+             url: video_url,
              name: metadata["snippet"]["title"],
              thumbnail: "http://img.youtube.com/vi/#{videoid}/0.jpg",
              type: :video,
              connector: @identifier,
              author: true,
              @identifier => {
-                 final_url: final_url,
+                 video_url: video_url,
                  metadata: metadata
              }
          }]
@@ -104,7 +105,6 @@ module Narra
       # (@options passed from resolver)
       # returns @youtube (json object)
       def initialization
-        @final_url = @options[:final_url]
         @meta = @options[:metadata]
       end
 
@@ -160,7 +160,7 @@ module Narra
       end
       
       def download_url
-        ViddlYt.get_video_url @final_url
+        @options[:video_url]
       end
     end
   end
