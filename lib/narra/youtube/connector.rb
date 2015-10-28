@@ -58,7 +58,7 @@ module Narra
         
         # return proxies
         [{
-             url: video_url,
+             url: final_url,
              name: metadata["snippet"]["title"],
              thumbnail: "http://img.youtube.com/vi/#{videoid}/0.jpg",
              type: :video,
