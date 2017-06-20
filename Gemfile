@@ -25,3 +25,4 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'narra-core', git: 'https://github.com/CAS-FAMU/narra-core.git'
+gem 'database_cleaner', git: 'https://github.com/DatabaseCleaner/database_cleaner.git'
